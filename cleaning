@@ -1,0 +1,50 @@
+import pandas as pd
+import numpy as np 
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+import datetime as dt
+import seaborn as sns
+from scipy import stats
+import pytz
+import warnings
+
+df = pd.read_csv("SolarPrediction.csv")
+
+# Remove warnings 
+def warn(*args, **kwargs): pass
+warnings.warn = warn
+
+# Drop rows with empty entries as they won't be useful in this
+df.dropna()
+
+# Data and Time are both made redudant by UNIXTime, so drop them 
+df.drop(['Data', 'Time'], axis = 1, inplace = True)
+
+# Ensure that the features are interperted correctly: 
+df['UNIXTime'] = pd.to_datetime(df['UNIXTime'],unit='s')
+df['Radiation'] = df['Radiation'].astype(float)
+df['Temperature'] = df['Temperature'].astype(float)
+df['Pressure'] = df['Pressure'].astype(float)
+df['Humidity'] = df['Humidity'].astype(float)
+df['WindDirection(Degrees)'] = df['WindDirection(Degrees)'].astype(float)
+df['Speed'] = df['Speed'].astype(float)
+df['TimeSunRise'] = pd.to_datetime(df['TimeSunRise'], format='%H:%M:%S')
+df['TimeSunSet'] = pd.to_datetime(df['TimeSunSet'], format='%H:%M:%S')
+
+# Localize Time to hawaii 
+df.sort_values('UNIXTime', inplace=True) 
+df.set_index('UNIXTime', inplace=True) 
+
+hawaii = pytz.timezone('Pacific/Honolulu')
+df.index = df.index.tz_localize(pytz.utc).tz_convert(hawaii)
+
+# Process the dates into a readable format for the models.
+df['Year'] = [timestamp.year for timestamp in df.index]
+df['Month'] = [timestamp.month for timestamp in df.index]
+df['Day'] = [timestamp.day for timestamp in df.index]
+df['Hour'] = [timestamp.hour for timestamp in df.index]
+df['Minute'] =[timestamp.minute for timestamp in df.index]
+
+# Convert sun rise/set time to minutes: 
+df['TimeSunRise'] = [timestamp.time().hour * 60 + timestamp.time().minute for timestamp in df['TimeSunRise']]
+df['TimeSunSet'] = [timestamp.time().hour * 60 + timestamp.time().minute for timestamp in df['TimeSunSet']]
